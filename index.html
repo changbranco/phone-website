@@ -1153,62 +1153,167 @@
   <script src="./js/products.js"></script>
   <script src="./js/index.js"></script>
   <script src="./js/slider.js"></script>
-<!-- AI CHATBOX BUTTON -->
-<div id="chatbot-toggle">
-  💬
+<!-- REALTIME AI CHATBOT -->
+<style>
+  #realtime-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #4c6fff;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    z-index: 99999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  #realtime-box {
+    position: fixed;
+    bottom: 95px;
+    right: 20px;
+    width: 360px;
+    max-height: 450px;
+    background: #fff;
+    border-radius: 15px;
+    overflow: hidden;
+    display: none;
+    flex-direction: column;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.25);
+    z-index: 99999;
+  }
+
+  #realtime-header {
+    background: #4c6fff;
+    color: #fff;
+    padding: 14px;
+    font-size: 17px;
+    font-weight: bold;
+  }
+
+  #realtime-messages {
+    padding: 12px;
+    height: 310px;
+    overflow-y: auto;
+    font-size: 14px;
+  }
+
+  #realtime-input-area {
+    display: flex;
+    border-top: 1px solid #ddd;
+  }
+
+  #realtime-input-area input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  #realtime-input-area button {
+    background: #4c6fff;
+    border: none;
+    color: #fff;
+    padding: 0 18px;
+    cursor: pointer;
+  }
+</style>
+
+<div id="realtime-toggle">🤖</div>
+
+<div id="realtime-box">
+  <div id="realtime-header">AI Live Assistant</div>
+  <div id="realtime-messages"></div>
+
+  <div id="realtime-input-area">
+    <input id="realtime-input" type="text" placeholder="Ask me anything..." />
+    <button onclick="sendRealtime()">➤</button>
+  </div>
 </div>
 
-<!-- AI CHATBOX WINDOW -->
-<div id="chatbot-box">
-  <div id="chatbot-header">
-    <span>AI Assistant</span>
-    <button id="chatbot-close">×</button>
-  </div>
-
-  <div id="chatbot-messages"></div>
-
-  <div id="chatbot-input-area">
-    <input type="text" id="chatbot-input" placeholder="Type your message..." />
-    <button id="chatbot-send">Send</button>
-  </div>
-</div>
 <script>
-  const toggleBtn = document.getElementById("chatbot-toggle");
-  const chatbox = document.getElementById("chatbot-box");
-  const closeBtn = document.getElementById("chatbot-close");
-  const sendBtn = document.getElementById("chatbot-send");
-  const input = document.getElementById("chatbot-input");
-  const messages = document.getElementById("chatbot-messages");
+  let ws;
 
-  toggleBtn.onclick = () => {
-    chatbox.style.display = "flex";
+  // Toggle chatbox
+  document.getElementById("realtime-toggle").onclick = () => {
+    let box = document.getElementById("realtime-box");
+    box.style.display = box.style.display === "flex" ? "none" : "flex";
   };
 
-  closeBtn.onclick = () => {
-    chatbox.style.display = "none";
-  };
+  // Connect to OpenAI realtime WebSocket
+  function connectRealtime() {
+    ws = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview", {
+      headers: {
+        "Authorization": "Bearer YOUR_OPENAI_API_KEY",
+        "OpenAI-Beta": "realtime=v1"
+      }
+    });
 
-  sendBtn.onclick = sendMessage;
+    ws.onopen = () => console.log("Connected to OpenAI Realtime");
 
-  input.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") sendMessage();
-  });
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
 
-  function sendMessage() {
-    let msg = input.value.trim();
-    if (msg === "") return;
+      if (msg.type === "response.output_text.delta") {
+        appendAI(msg.delta);
+      }
+    };
 
-    // User message
-    messages.innerHTML += `<div><b>You:</b> ${msg}</div>`;
+    ws.onerror = (err) => console.error("WebSocket Error:", err);
+  }
+
+  connectRealtime();
+
+  function appendUser(text) {
+    let box = document.getElementById("realtime-messages");
+    let div = document.createElement("div");
+    div.style.margin = "8px 0";
+    div.innerHTML = "<b>You:</b> " + text;
+    box.appendChild(div);
+  }
+
+  let currentAIBlock = null;
+
+  function appendAI(text) {
+    let box = document.getElementById("realtime-messages");
+
+    if (!currentAIBlock) {
+      currentAIBlock = document.createElement("div");
+      currentAIBlock.style.margin = "8px 0";
+      currentAIBlock.innerHTML = "<b>AI:</b> ";
+      box.appendChild(currentAIBlock);
+    }
+
+    currentAIBlock.innerHTML += text;
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function sendRealtime() {
+    let input = document.getElementById("realtime-input");
+    let text = input.value.trim();
+
+    if (!text) return;
+
+    appendUser(text);
+    currentAIBlock = null;
+
+    ws.send(JSON.stringify({
+      type: "response.create",
+      response: {
+        instructions: text
+      }
+    }));
+
     input.value = "";
-
-    // Bot response (simple demo)
-    setTimeout(() => {
-      messages.innerHTML += `<div><b>AI:</b> Hello! This is your AI assistant.</div>`;
-      messages.scrollTop = messages.scrollHeight;
-    }, 500);
   }
 </script>
+
 
 </body>
 
