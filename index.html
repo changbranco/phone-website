@@ -1172,6 +1172,43 @@
     <button id="chatbot-send">Send</button>
   </div>
 </div>
+<script>
+  const toggleBtn = document.getElementById("chatbot-toggle");
+  const chatbox = document.getElementById("chatbot-box");
+  const closeBtn = document.getElementById("chatbot-close");
+  const sendBtn = document.getElementById("chatbot-send");
+  const input = document.getElementById("chatbot-input");
+  const messages = document.getElementById("chatbot-messages");
+
+  toggleBtn.onclick = () => {
+    chatbox.style.display = "flex";
+  };
+
+  closeBtn.onclick = () => {
+    chatbox.style.display = "none";
+  };
+
+  sendBtn.onclick = sendMessage;
+
+  input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendMessage();
+  });
+
+  function sendMessage() {
+    let msg = input.value.trim();
+    if (msg === "") return;
+
+    // User message
+    messages.innerHTML += `<div><b>You:</b> ${msg}</div>`;
+    input.value = "";
+
+    // Bot response (simple demo)
+    setTimeout(() => {
+      messages.innerHTML += `<div><b>AI:</b> Hello! This is your AI assistant.</div>`;
+      messages.scrollTop = messages.scrollHeight;
+    }, 500);
+  }
+</script>
 
 </body>
 
